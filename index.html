@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baby Dragon's Journey - Vocabulary Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #4da3ff;
+            --soft-purple: #b388ff;
+            --correct-green: #66bb6a;
+            --wrong-red: #ef5350;
+            --text-dark: #2c3e50;
+            --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Game Container --- */
+        #game-stage {
+            width: 100%;
+            max-width: 500px;
+            height: 95vh;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 8px solid white;
+        }
+
+        /* --- Progress Bar --- */
+        #progress-container {
+            width: 100%;
+            height: 12px;
+            background: #eee;
+            position: relative;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary-blue);
+            transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* --- Screen Controller --- */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+            flex: 1;
+            animation: fadeIn 0.5s ease;
+        }
+        .active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Visuals --- */
+        .illustration-box {
+            font-size: 100px;
+            margin: 20px 0;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1));
+            transition: transform 0.3s ease;
+        }
+
+        /* Custom Colors for Objects (To avoid emoji inconsistency) */
+        .gem-blue { color: #00bcd4; }
+        .table-red { color: #d32f2f; }
+
+        .dragon-hero {
+            font-size: 80px;
+            margin-bottom: 20px;
+            display: inline-block;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        /* --- Text Styles --- */
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: var(--soft-purple);
+            margin: 10px 0;
+            font-size: 28px;
+        }
+
+        .story-text {
+            font-size: 20px;
+            color: var(--text-dark);
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+
+        .question-box {
+            background: #f0f7ff;
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: 3px dashed var(--primary-blue);
+            font-size: 22px;
+            font-weight: bold;
+            color: #1565c0;
+            margin: 15px 0;
+        }
+
+        .blank {
+            color: var(--soft-purple);
+            text-decoration: underline;
+        }
+
+        /* --- Buttons --- */
+        .button-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+            font-family: 'Fredoka One', cursive;
+            width: 100%;
+        }
+
+        .btn-start { background: var(--soft-purple); color: white; }
+        .btn-option { background: var(--primary-blue); color: white; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+
+        /* --- Feedback --- */
+        #feedback-pop {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 0 100px rgba(0,0,0,0.2);
+            z-index: 10;
+            text-align: center;
+            width: 80%;
+            pointer-events: none;
+        }
+        #feedback-pop.show {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .shake { animation: shakeEffect 0.4s ease; }
+        @keyframes shakeEffect {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* --- Final Screen --- */
+        .confetti {
+            position: absolute;
+            width: 10px; height: 10px;
+            background: red;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-stage">
+    <div id="progress-container"><div id="progress-bar"></div></div>
+
+    <div id="feedback-pop">
+        <h2 id="feedback-text">Correct! 👏👏👏👏👏</h2>
+        <div style="font-size: 50px;">✨✨✨</div>
+    </div>
+
+    <div id="screen-start" class="screen active">
+        <div class="dragon-hero">🐉</div>
+        <h1>Baby Dragon's Journey</h1>
+        <p class="story-text">A baby dragon is lost. It wants to find its home. Can you help?</p>
+        <div class="button-group">
+            <button class="btn btn-start" onclick="startGame()">Start Adventure 🚀</button>
+        </div>
+    </div>
+
+    <div id="screen-game" class="screen">
+        <p id="story-display" class="story-text"></p>
+        <div id="image-display" class="illustration-box"></div>
+        
+        <div class="question-box">
+            <span id="q-text"></span><span class="blank">____</span>.
+        </div>
+
+        <div class="button-group">
+            <button id="opt1" class="btn btn-option" onclick="handleChoice(0)"></button>
+            <button id="opt2" class="btn btn-option" onclick="handleChoice(1)"></button>
+        </div>
+    </div>
+
+    <div id="screen-final" class="screen">
+        <div style="font-size: 100px;">🏰🐉💖</div>
+        <h1>Home Sweet Home!</h1>
+        <p class="story-text">The baby dragon found its home! Thank you for helping!</p>
+        <div class="button-group">
+            <button class="btn btn-start" onclick="resetGame()">Play Again 🔄</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* --- Game Configuration --- */
+    const chapters = [
+        {
+            story: "The dragon meets a hopping animal in the forest.",
+            img: "🐇",
+            q: "This animal hops. It is a ",
+            options: ["Rabbit", "Dog"],
+            correct: 0
+        },
+        {
+            story: "Something is watching from a tree at night.",
+            img: "🦉",
+            q: "This animal flies at night. It is an ",
+            options: ["Owl", "Cat"],
+            correct: 0
+        },
+        {
+            story: "Near the water, a small green animal jumps.",
+            img: "🐸",
+            q: "This animal jumps and lives near water. It is a ",
+            options: ["Frog", "Horse"],
+            correct: 0
+        },
+        {
+            story: "The dragon finds a shiny gem in the dirt.",
+            img: "💎", // Blue Gem
+            q: "What colour is this? It is ",
+            options: ["Blue", "Red"],
+            correct: 0
+        },
+        {
+            story: "The dragon enters a room and sees a place to sit and eat.",
+            img: "🔴🪑", // Representing Red Object (Table/Chair)
+            q: "What colour is this? It is ",
+            options: ["Red", "Blue"],
+            correct: 0
+        },
+        {
+            story: "The dragon finds something that opens doors.",
+            img: "🔑",
+            q: "This opens doors. It is a ",
+            options: ["Key", "Wand"],
+            correct: 0
+        },
+        {
+            story: "A glowing thing grows on the ground near the trees.",
+            img: "🍄",
+            q: "This grows on the ground. It is a ",
+            options: ["Mushroom", "Rock"],
+            correct: 0
+        },
+        {
+            story: "The dragon feels hungry and finds a sweet treat.",
+            img: "🍎",
+            q: "This is a sweet fruit. It is an ",
+            options: ["Apple", "Carrot"],
+            correct: 0
+        },
+        {
+            story: "A magical vehicle appears to help the dragon travel.",
+            img: "🎠",
+            q: "This carries people. It is a ",
+            options: ["Carriage", "Boat"],
+            correct: 0
+        },
+        {
+            story: "A magical animal joins the dragon at the castle gate.",
+            img: "🦄",
+            q: "This has a horn. It is a ",
+            options: ["Unicorn", "Fairy"],
+            correct: 0
+        }
+    ];
+
+    let currentChapter = 0;
+    let isTransitioning = false;
+
+    /* --- Audio Engine (No external files) --- */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if(type === 'correct') {
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3); // A5
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
+    /* --- Game Functions --- */
+
+    function startGame() {
+        showScreen('screen-game');
+        loadChapter();
+    }
+
+    function loadChapter() {
+        const data = chapters[currentChapter];
+        document.getElementById('story-display').innerText = data.story;
+        document.getElementById('image-display').innerText = data.img;
+        document.getElementById('q-text').innerText = data.q;
+        document.getElementById('opt1').innerText = data.options[0];
+        document.getElementById('opt2').innerText = data.options[1];
+        
+        // Specific styling for certain emojis to ensure clarity
+        if(currentChapter === 3) document.getElementById('image-display').style.color = '#00bcd4';
+        else if(currentChapter === 4) document.getElementById('image-display').style.color = '#d32f2f';
+        else document.getElementById('image-display').style.color = 'inherit';
+
+        updateProgress();
+    }
+
+    function handleChoice(choiceIndex) {
+        if (isTransitioning) return;
+        const correctIndex = chapters[currentChapter].correct;
+
+        if (choiceIndex === correctIndex) {
+            handleSuccess();
+        } else {
+            handleFailure();
+        }
+    }
+
+    function handleSuccess() {
+        isTransitioning = true;
+        playSound('correct');
+        const pop = document.getElementById('feedback-pop');
+        pop.classList.add('show');
+
+        setTimeout(() => {
+            pop.classList.remove('show');
+            currentChapter++;
+            
+            if (currentChapter < chapters.length) {
+                loadChapter();
+                isTransitioning = false;
+            } else {
+                endGame();
+            }
+        }, 1500);
+    }
+
+    function handleFailure() {
+        playSound('wrong');
+        const gameScreen = document.getElementById('screen-game');
+        gameScreen.classList.add('shake');
+        setTimeout(() => gameScreen.classList.remove('shake'), 400);
+    }
+
+    function updateProgress() {
+        const percent = (currentChapter / chapters.length) * 100;
+        document.getElementById('progress-bar').style.width = percent + '%';
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function endGame() {
+        updateProgress();
+        showScreen('screen-final');
+        createConfetti();
+    }
+
+    function resetGame() {
+        // FULL RESET of all states
+        currentChapter = 0;
+        isTransitioning = false;
+        document.getElementById('progress-bar').style.width = '0%';
+        showScreen('screen-start');
+    }
+
+    /* --- Confetti Effect for Final Screen --- */
+    function createConfetti() {
+        for(let i=0; i<30; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti';
+            c.style.left = Math.random() * 100 + '%';
+            c.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            c.style.top = '-10px';
+            document.getElementById('game-stage').appendChild(c);
+            
+            const animation = c.animate([
+                { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+                { transform: `translateY(600px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+            ], {
+                duration: 2000 + Math.random() * 3000,
+                easing: 'linear'
+            });
+
+            animation.onfinish = () => c.remove();
+        }
+    }
+</script>
+
+</body>
+</html>
